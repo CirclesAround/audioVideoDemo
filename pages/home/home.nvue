@@ -1,0 +1,445 @@
+<template>
+	<view class="home">
+		<view class="home__btn">
+			<button class="btn" @click="operationCamera">点击{{isOpenCamera ? '关闭' : '打开'}}摄像头</button>
+			<button class="btn" @click="switchCamera">摄像头切换</button>
+			<button class="btn" @click="setMutedLocalAudio">{{localAudioOn ? '关闭' : '开启'}}音频静音</button>
+			<button class="btn" @click="setMutedLocalVideo">{{localVideoOn ? '关闭' : '开启'}}视频静音</button>
+			<button class="btn"
+				@click="setAudioRouteToSpeakerphone">{{audioRouteToSpeakerphone ? '关闭' : '开启'}}扬声器</button>
+			<button class="btn" @click="operationScreenRecording">{{isScreenRecording ? '关闭' : '开启'}}录屏</button>
+		</view>
+		<view class="home__state">
+			<text class="title">房间状态：</text>
+			<text v-if="connectionState === 'CONNECTING'">连接中</text>
+			<text v-else-if="connectionState === 'RECONNECTING'">重连中</text>
+			<text v-else-if="connectionState === 'CONNECTED' || connectionState === 'RECONNECTED'">连接成功</text>
+			<text v-else>未连接</text>
+
+		</view>
+		<view class="home__video" v-for="(item,index) in localTracks" :key="index">
+			<view class="text">进入</view>
+			<QNRTC-UniPlugin-SurfaceView class="video" v-if="item.kind === 'video'" :local="0"
+				:identifyID="item.identifyID" :trackID="item.trackID"></QNRTC-UniPlugin-SurfaceView>
+		</view>
+		<view class="home__video" v-for="(item,index) in remoteTracks" :key="item.trackID">
+			<view class="text">卡上打卡机的</view>
+			<QNRTC-UniPlugin-SurfaceView class="video" v-if="item.kind === 'video'" :local="1"
+				:identifyID="item.identifyID" :userID="item.userID" :trackID="item.trackID">
+			</QNRTC-UniPlugin-SurfaceView>
+		</view>
+
+
+	</view>
+</template>
+
+<script>
+	import QNRTC, {
+		QNRTCLogLevel
+	} from "@/js_sdk/QNRTC-UniPlugin-JS/QNRTC-UniPlugin-JS/RTCIndex.native.js"
+	import {
+		mapState,
+		mapMutations
+	} from "vuex"
+	export default {
+		data() {
+			return {
+				client: null, // 创建
+				localTracks: [],
+				remoteTracks: [],
+				connectionState: "", // 连接状态
+				cameraVideoTrack: null, // 创建摄像头
+				microphoneAudioTrack: null, // 创建音频
+				screenVideoTrack: null, // 屏幕共享
+				remoteVideoTracks: null,
+				remoteAudioTracks: null,
+				isOpenCamera: true, // 是否开启摄像头
+				isScreenRecording: false, // 是否开启屏幕共享
+				localAudioOn: false, // 音频是否静音
+				localVideoOn: false, // 视频是否静音
+				audioRouteToSpeakerphone: true, // 是否切换到扬声器
+				isAuthorizedShareScreen: false // 是否已经授权获取分享屏幕权限
+			}
+		},
+		computed: {
+			...mapState(["captureHeight", "captureWidth", "encodeWidth", "encodeHeight", "platform", "multiStreamEnable",
+				"token", "policy", "logLevel", "stereo", "bwePolicy", "allowAudioMixWithOthers", "hWCodecEnabled",
+				"maintainResolution", "fieldTrials", "encoderQualityMode", "isAEC3Enabled", "multiStreamEnable",
+				"roomID"
+			])
+		},
+		onBackPress() {
+			// 离开房间
+			this.client.leave()
+			// 反初始化操作 在确认不再使用实时音视频后调用此接口释放其占用的资源，此后如果再使用需要再次调用 configRTC 方法
+			QNRTC.deinit()
+			console.log("执行onUnload")
+		},
+		onUnload() {
+			// 离开房间
+			this.client.leave()
+			// 反初始化操作 在确认不再使用实时音视频后调用此接口释放其占用的资源，此后如果再使用需要再次调用 configRTC 方法
+			QNRTC.deinit()
+		},
+
+		onLoad() {
+			this.handleJoinRoom()
+			setInterval(() => {
+				if (this.client) {
+					this.connectionState = this.client.getConnectionState()
+					// console.log(this.connectionState, '实时获取房间状态')
+				}
+				if (this.remoteAudioTracks) {
+					const remoteAudioTracksSubscribed = this.remoteAudioTracks.isSubscribed()
+					// console.log("web:remoteAudioTracksSubscribed", remoteAudioTracksSubscribed)
+					// const getRemoteVolume = this.remoteAudioTracks.getRemoteVolume()
+					// console.log("web:getRemoteVolume",getRemoteVolume)
+				}
+				if (this.remoteVideoTracks) {
+					const remoteVideoTracksSubscribed = this.remoteVideoTracks.isSubscribed()
+					// console.log("web:remoteVideoTracksSubscribed", remoteVideoTracksSubscribed)
+					const isMultiProfileEnabled = this.remoteVideoTracks.isMultiProfileEnabled()
+					// console.log("web:isMultiProfileEnabled", isMultiProfileEnabled)
+					// const getProfile = this.remoteVideoTracks.getProfile()
+					// console.log("web:getProfiles", getProfile)
+				}
+			}, 2000)
+
+		},
+		methods: {
+			async handleJoinRoom() {
+				if (this.connectionState === "CONNECTED") {
+					uni.showModal({
+						content: "已经加入房间"
+					})
+					return false
+				}
+				// 初始化SDK
+				QNRTC.configRTC({
+					policy: this.policy, // 媒体流的连接方式
+					logLevel: this.logLevel, // 日志等级
+					stereo: this.stereo === 1, // 是否使用立体声
+					bwePolicy: this.bwePolicy, // 带宽评估策略只支持ios
+					allowAudioMixWithOthers: this.allowAudioMixWithOthers === 1, // 是否允许和其它音频一起播放只支持ios
+					hWCodecEnabled: this.hWCodecEnabled === 1, // 是否开启硬编只支持安卓
+					maintainResolution: this.maintainResolution === 1, // 是否固定分辨率
+					fieldTrials: this.fieldTrials, // 扩展配置只支持安卓
+					encoderQualityMode: this.encoderQualityMode === 1, // 是否开启质量模式只支持安卓
+					isAEC3Enabled: this.isAEC3Enabled === 1 // 获取当前是否已开启软件回声消除
+				})
+				this.client = QNRTC.createClient()
+				// 是否自动订阅
+				this.client.setAutoSubscribe(false)
+
+				// 创建摄像头视频轨道
+				this.cameraVideoTrack = QNRTC.createCameraVideoTrack({
+					bitrate: 128,
+					multiStreamEnable: this.multiStreamEnable === 1,
+					width: this.encodeWidth * 1,
+					height: this.encodeHeight * 1,
+					captureHeight: this.captureHeight * 1,
+					captureWidth: this.captureWidth * 1
+				})
+				this.cameraVideoTrack.setMuted(false)
+				this.localTracks.push(this.cameraVideoTrack)
+				// 创建麦克风音频轨道
+				this.microphoneAudioTrack = QNRTC.createMicrophoneAudioTrack()
+				this.localTracks.push(this.microphoneAudioTrack)
+				//	房间状态改变
+				this.client.on("onConnectionStateChanged", ({
+					state,
+					info
+				}) => {
+					console.log(state, '加入的状态')
+					if (state === "CONNECTED") { // 连接成功
+						// 发布本地的音视频轨道
+						this.client.publish(this.localTracks, (onPublished, error) => {
+							if (onPublished) {
+								uni.showModal({
+									content: "发布成功"
+								})
+
+								this.cameraVideoTrack.on("onLocalVideoFrame", (params) => {
+									console.log(params, "不知道这是什么")
+								})
+							} else {
+								uni.showModal({
+									content: error.message
+								})
+							}
+						})
+					} else if (state === "DISCONNECTED") { // 未连接
+						if (info.reason === "KICKED_OUT") {
+							uni.showModal({
+								content: "被踢出房间",
+								success: (res) => {
+									uni.navigateBack()
+								}
+							})
+						} else if (info.reason === "ROOM_CLOSED") { // 房间被关
+							uni.showModal({
+								content: "房间被关闭",
+								success: (res) => {
+									uni.navigateBack()
+								}
+							})
+						} else if (info.reason === "ROOM_FULL") { // 房间人数已满
+							uni.showModal({
+								content: "房间人数已满",
+								success: (res) => {
+									uni.navigateBack()
+								}
+							})
+						}
+					} else if (state === "RECONNECTING") { // 重连中
+						uni.showLoading({
+							mask: true,
+							title: '重连中'
+						})
+					} else if (state === "RECONNECTED") { // 已重连
+						uni.hideLoading()
+						uni.showModal({
+							content: "重连成功"
+						})
+					}
+				})
+				// 订阅 audio Track 成功
+				this.client.on("onAudioSubscribed", params => {
+					console.log("用户音频订阅成功")
+					for (let i of params.trackList) {
+						this.remoteTracks.push(i)
+
+
+
+						this.remoteAudioTracks = i
+
+						// 静默状态改变时回调
+						this.remoteAudioTracks.on("onMuteStateChanged", params => {
+							let content = ""
+							if (params && params.isMuted) {
+								content = `${this.remoteAudioTracks.trackID}被mute了`
+							} else {
+								content = `${this.remoteAudioTracks.trackID}取消mute了`
+							}
+							uni.showModal({
+								content: content
+							})
+						})
+					}
+
+
+				})
+				// 订阅 video Track 成功
+				this.client.on("onVideoSubscribed", params => {
+					console.log("用户视频订阅成功")
+					for (let i of params.trackList) {
+						this.remoteTracks.push(i)
+
+						this.remoteVideoTracks = i
+						// 视频质量改变回调
+						this.remoteVideoTracks.on("onVideoProfileChanged", params => {
+							if (params.profile) {
+								uni.showModal({
+									content: `当前的视频质量等级为：${params.profile}`
+								})
+							}
+						})
+						this.remoteVideoTracks.on("onRemoteVideoFrame", params => {
+							console.log(params, "111111111111111111")
+						})
+						this.remoteVideoTracks.on("onMuteStateChanged", params => {
+							let content = ""
+							if (params && params.isMuted) {
+								content = `${this.remoteVideoTracks.trackID}被mute了`
+							} else {
+								content = `${this.remoteVideoTracks.trackID}取消mute了`
+							}
+							uni.showModal({
+								content: content
+							})
+						})
+					}
+				})
+				// 远端 Track 发布
+				this.client.on("onUserPublished", params => {
+					console.log("用户发布", params)
+					this.client.subscribe(params.trackList)
+				})
+				// 远端 Track 取消发布
+				this.client.on("onUserUnpublished", params => {
+					console.log("用户取消发布", params)
+					for (let i of params.trackList) {
+						const index = this.remoteTracks.findIndex(item => item.trackID === i.trackID)
+						if (index >= 0) {
+							this.remoteTracks.splice(index, 1)
+						}
+
+
+
+						if (this.remoteAudioTracks && i.trackID === this.remoteAudioTracks.trackID) {
+							this.remoteAudioTracks = null
+						}
+						if (this.remoteVideoTracks && i.trackID === this.remoteVideoTracks.trackID) {
+							console.log(this.remoteVideoTracks)
+							this.remoteVideoTracks = null
+						}
+					}
+				})
+				// 收到自定义消息
+				this.client.on("onMessageReceived", params => {
+					console.log("接收到消息", params)
+					uni.showModal({
+						content: `${params.userId}说：${params.content}`
+					})
+				})
+				// 远端用户进入重连
+				this.client.on("onUserReconnecting", params => {
+					console.log("用户重连中", params)
+				})
+				// 远端用户重连成功
+				this.client.on("onUserReconnected", params => {
+					console.log("用户重连成功", params)
+				})
+				// 远端用户离开房间
+				this.client.on("onUserLeft", params => {
+					console.log("用户离开房间", params)
+				})
+				console.log(this.token, '按实际看到哈时间的房间token')
+				this.client.join(this.token)
+			},
+			/**
+			 * 开启或关闭摄像头
+			 */
+			operationCamera() {
+				if (this.isOpenCamera) { // 关闭摄像头
+					this.cameraVideoTrack && this.cameraVideoTrack.stopCapture()
+					this.isOpenCamera = false
+					return
+				}
+				this.cameraVideoTrack && this.cameraVideoTrack.startCapture()
+				this.isOpenCamera = true
+			},
+			/**
+			 * 切换摄像头
+			 */
+			switchCamera() {
+				this.cameraVideoTrack && this.cameraVideoTrack.switchCamera()
+			},
+			/**
+			 * 开启或关闭录屏
+			 */
+			operationScreenRecording() {
+				if (this.isScreenRecording) { // 关闭录屏
+					this.isScreenRecording = false
+					this.screenVideoTrack = null
+					this.localTracks.splice(this.localTracks.length - 1, 1)
+					return
+				}
+				// 使用录屏 展示屏幕的所有内容
+				if (QNRTC.isScreenCaptureSupported()) {
+					// 创建屏幕采集的视频轨道
+					this.screenVideoTrack = QNRTC.createScreenVideoTrack({
+						bitrate: 90
+					})
+					if (this.platform === 'android' && !this.isAuthorizedShareScreen) { // 是否已经授权
+						QNRTC.requestPermission((result) => {
+							if (result) {
+								this.isAuthorizedShareScreen = true
+								this.localTracks.push(this.screenVideoTrack)
+							} else {
+								uni.showModal({
+									content: "无法录屏"
+								})
+							}
+						})
+					} else {
+						this.localTracks.push(this.screenVideoTrack)
+					}
+				}
+				this.isScreenRecording = true
+			},
+			// 音频切换至扬声器
+			setAudioRouteToSpeakerphone() {
+				this.audioRouteToSpeakerphone = !this.audioRouteToSpeakerphone
+				QNRTC.setAudioRouteToSpeakerphone(this.audioRouteToSpeakerphone)
+			},
+			// 本地音频静音
+			setMutedLocalAudio() {
+				this.localAudioOn = !this.localAudioOn
+				this.microphoneAudioTrack && this.microphoneAudioTrack.setMuted(this.localAudioOn)
+				// this.microphoneAudioTrack.setVolume(10)
+			},
+			// 本地视频静音
+			setMutedLocalVideo() {
+				this.localVideoOn = !this.localVideoOn
+				if (this.cameraVideoTrack) {
+					this.cameraVideoTrack.setMuted(this.localVideoOn)
+					// 设置远端音量
+					// this.remoteAudioTracks.setRemoteVolume(10)
+				}
+			}
+		}
+
+	}
+</script>
+
+<style lang="scss">
+	.home {
+		background-color: $uni-text-color-inverse;
+
+		&__state {
+			display: flex;
+			flex-direction: row !important;
+			justify-content: space-between;
+			flex-wrap: nowrap;
+			align-items: center !important;
+			margin-bottom: 10px;
+		}
+
+		&__video {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+
+			.video {
+				height: 600rpx;
+				width: 750rpx
+			}
+
+			.text {
+				color: $uni-color-primary;
+				font-size: 28rpx;
+			}
+
+			.local {
+				width: 750rpx;
+				flex: 0.5
+			}
+
+			.local2 {
+				width: 750rpx;
+				flex: 1;
+			}
+		}
+
+		&__btn {
+			position: fixed;
+			bottom: 200rpx;
+			right: 0;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+
+			.btn {
+				width: 300rpx;
+				height: 86rpx;
+				margin-bottom: 30rpx;
+				/* #ifndef APP-NVUE */
+				border: none;
+				/* #endif */
+			}
+		}
+	}
+</style>

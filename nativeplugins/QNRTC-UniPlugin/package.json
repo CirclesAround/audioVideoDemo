@@ -1,0 +1,101 @@
+{
+    "name": "七牛云原生WebRTC插件",
+    "id": "QNRTC-UniPlugin",
+    "version": "1.1.2",
+    "description": "QNRTC原生插件",
+    "_dp_type": "nativeplugin",
+    "_dp_nativeplugin": {
+        "ios": {
+            "plugins": [
+                {
+                    "type": "module",
+                    "name": "QNRTC-UniPlugin-QNRtcEngine",
+                    "class": "QNRtcEngine"
+                },
+                {
+                    "type": "module",
+                    "name": "QNRTC-UniPlugin-QNRtcClient",
+                    "class": "QNRtcClient"
+                },
+                {
+                    "type": "module",
+                    "name": "QNRTC-UniPlugin-QNRtcTrack",
+                    "class": "QNRtcTrack"
+                },
+                {
+                    "type": "module",
+                    "name": "QNRTC-UniPlugin-QNRtcAudioMixer",
+                    "class": "QNRtcAudioMixer"
+                },
+                {
+                    "type": "component",
+                    "name": "QNRTC-UniPlugin-SurfaceView",
+                    "class": "QNRtcSurfaceView"
+                }
+            ],
+            "integrateType": "framework",
+            "frameworks": [
+                "HappyDNS.framework",
+                "QNRTCKit.framework"
+            ],
+            "embedFrameworks": [
+                "HappyDNS.framework",
+                "QNRTCKit.framework"
+            ],
+            "privacies": [
+                "NSCameraUsageDescription",
+                "NSMicrophoneUsageDescription"
+            ],
+            "deploymentTarget": "9.0"
+        },
+        "android": {
+            "plugins": [
+                {
+                    "type": "module",
+                    "name": "QNRTC-UniPlugin-QNRtcEngine",
+                    "class": "uni.qiniu.droid.uniplugin_rtc.uni.module.QNRTCModule"
+                },
+                {
+                    "type": "module",
+                    "name": "QNRTC-UniPlugin-QNRtcClient",
+                    "class": "uni.qiniu.droid.uniplugin_rtc.uni.module.QNRTCClientModule"
+                },
+                {
+                    "type": "module",
+                    "name": "QNRTC-UniPlugin-QNRtcTrack",
+                    "class": "uni.qiniu.droid.uniplugin_rtc.uni.module.QNRTCTrackModule"
+                },
+                {
+                    "type": "module",
+                    "name": "QNRTC-UniPlugin-QNRtcAudioMixer",
+                    "class": "uni.qiniu.droid.uniplugin_rtc.uni.module.QNRTCAudioMixerModule"
+                },
+                {
+                    "type": "component",
+                    "name": "QNRTC-UniPlugin-SurfaceView",
+                    "class": "uni.qiniu.droid.uniplugin_rtc.uni.component.QNRTCSurfaceView"
+                },
+				{
+				    "type": "component",
+				    "name": "QNRTC-UniPlugin-TextureView",
+				    "class": "uni.qiniu.droid.uniplugin_rtc.uni.component.QNRTCTextureView"
+				}
+            ],
+            "abis": [
+                "armeabi-v7a",
+                "x86",
+                "arm64-v8a"
+            ],
+			"dependencies": [
+                "com.qiniu:happy-dns:1.0.1",
+                "com.google.code.gson:gson:2.8.8"
+            ],
+            "minSdkVersion": "21",
+            "compileOptions": {
+                "sourceCompatibility": "1.8",
+                "targetCompatibility": "1.8"
+            },
+            "integrateType": "aar"
+        }
+    }
+}
