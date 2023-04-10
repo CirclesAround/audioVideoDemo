@@ -41,7 +41,7 @@
                     "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>",
                     "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>"
                 ],
-                "minSdkVersion" : 28,
+                "minSdkVersion" : 21,
                 "targetSdkVersion" : 28,
                 "autoSdkPermissions" : true
             },

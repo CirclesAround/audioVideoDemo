@@ -209,8 +209,6 @@
 					for (let i of params.trackList) {
 						this.remoteTracks.push(i)
 
-
-
 						this.remoteAudioTracks = i
 
 						// 静默状态改变时回调
@@ -331,21 +329,29 @@
 			operationScreenRecording() {
 				if (this.isScreenRecording) { // 关闭录屏
 					this.isScreenRecording = false
+					// 取消远程发布
+					this.client.unpublish([this.screenVideoTrack])
+					// 重新再发布
+					this.client.publish(this.localTracks)
 					this.screenVideoTrack = null
-					this.localTracks.splice(this.localTracks.length - 1, 1)
 					return
 				}
 				// 使用录屏 展示屏幕的所有内容
 				if (QNRTC.isScreenCaptureSupported()) {
 					// 创建屏幕采集的视频轨道
 					this.screenVideoTrack = QNRTC.createScreenVideoTrack({
-						bitrate: 90
+						bitrate: 128,
+						width: this.encodeWidth * 1,
+						height: this.encodeHeight * 1,
+						captureHeight: this.captureHeight * 1,
+						captureWidth: this.captureWidth * 1
 					})
 					if (this.platform === 'android' && !this.isAuthorizedShareScreen) { // 是否已经授权
 						QNRTC.requestPermission((result) => {
 							if (result) {
 								this.isAuthorizedShareScreen = true
-								this.localTracks.push(this.screenVideoTrack)
+								// 发布到远程
+								this.client.publish([this.screenVideoTrack])
 							} else {
 								uni.showModal({
 									content: "无法录屏"
@@ -353,7 +359,7 @@
 							}
 						})
 					} else {
-						this.localTracks.push(this.screenVideoTrack)
+						this.client.publish([this.screenVideoTrack])
 					}
 				}
 				this.isScreenRecording = true
