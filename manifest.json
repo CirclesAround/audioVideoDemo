@@ -16,6 +16,12 @@
             "autoclose" : true,
             "delay" : 0
         },
+        /* 启用高斯模糊效果 平台会自动处理 iPhoneX 等全面屏机型的高度适配，不然在全面屏机型上可能会出现页面被遮挡的问题 */
+        "safearea" : {
+            "bottom" : {
+                "offset" : "none"
+            }
+        },
         /* 模块配置 */
         "modules" : {},
         /* 应用发布信息 */

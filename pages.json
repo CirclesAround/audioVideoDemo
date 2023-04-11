@@ -7,21 +7,22 @@
 			}
 		},
 		{
-		    "path" : "pages/home/home",
-		    "style" :                                                                                    
-		    {
-		        "navigationBarTitleText": "授权",
-		        "enablePullDownRefresh": false
-		    }
-		    
+			"path": "pages/home/home",
+			"style": {
+				"navigationBarTitleText": "授权",
+				"enablePullDownRefresh": false
+			}
+
 		}
-		
-    ],
+
+	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "uni-app",
 		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
+		"backgroundColor": "#F8F8F8",
+		"dynamicRpx": true
 	},
+
 	"uniIdRouter": {}
 }

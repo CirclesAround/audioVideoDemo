@@ -4,7 +4,9 @@
 		<view class="text-area">
 			<text class="title">{{title}}</text>
 		</view>
-		<button class="btn" type="default" @click="jumpHome">跳转到授权页面进行授权</button>
+		<view class="jump" @click="jumpHome">
+			<text class="btn">跳转到授权页面进行授权</text>
+		</view>
 	</view>
 </template>
 
@@ -16,7 +18,8 @@
 	export default {
 		data() {
 			return {
-				title: 'Hello world'
+				title: 'Hello world',
+				tabbarHeight: 0
 			}
 		},
 		computed: {
@@ -26,6 +29,11 @@
 			if (this.platform = "android") {
 				this.requestPermission()
 			}
+		},
+		onReady() {
+			// 获取 tabBar 的高度
+			this.tabbarHeight = uni.getSystemInfoSync().windowBottom
+			console.log(this.tabbarHeight, '阿收到了卡接收到')
 		},
 		methods: {
 			requestPermission() {
@@ -70,20 +78,21 @@
 	}
 </script>
 
-<style>
+<style lang="scss" scoped>
 	.content {
-		display: flex;
+		min-height: 100vh;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
+		background-color: #f5f5f5;
 	}
 
 	.logo {
 		height: 200rpx;
 		width: 200rpx;
 		margin-top: 200rpx;
-		margin-left: auto;
-		margin-right: auto;
+		margin-left: 0;
+		margin-right: 0;
 		margin-bottom: 50rpx;
 	}
 
@@ -97,15 +106,23 @@
 		color: #8f8f94;
 	}
 
-	.btn {
-		display: flex;
+	.jump {
 		align-items: center;
 		justify-content: center;
-		color: $uni-text-color-inverse;
-		font-size: 32rpx;
 		width: 600rpx;
 		height: 98rpx;
 		margin-top: 20rpx;
-		background-color: $uni-color-error;
+		background-color: #ededed;
+	}
+
+	.btn {
+		color: #000;
+		font-size: 32rpx;
+	}
+
+	.sort {
+		color: #bdbdbd;
+		font-size: 36rpx;
+		line-height: 100rpx;
 	}
 </style>

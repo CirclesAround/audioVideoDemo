@@ -1,13 +1,13 @@
 <template>
 	<view class="home">
 		<view class="home__btn">
-			<button class="btn" @click="operationCamera">点击{{isOpenCamera ? '关闭' : '打开'}}摄像头</button>
-			<button class="btn" @click="switchCamera">摄像头切换</button>
-			<button class="btn" @click="setMutedLocalAudio">{{localAudioOn ? '关闭' : '开启'}}音频静音</button>
-			<button class="btn" @click="setMutedLocalVideo">{{localVideoOn ? '关闭' : '开启'}}视频静音</button>
-			<button class="btn"
-				@click="setAudioRouteToSpeakerphone">{{audioRouteToSpeakerphone ? '关闭' : '开启'}}扬声器</button>
-			<button class="btn" @click="operationScreenRecording">{{isScreenRecording ? '关闭' : '开启'}}录屏</button>
+			<text class="text" @click="operationCamera">点击{{isOpenCamera ? '关闭' : '打开'}}摄像头</text>
+			<text class="text" @click="switchCamera">摄像头切换</text>
+			<text class="text" @click="setMutedLocalAudio">{{localAudioOn ? '关闭' : '开启'}}音频静音</text>
+			<text class="text" @click="setMutedLocalVideo">{{localVideoOn ? '关闭' : '开启'}}视频静音</text>
+			<text class="text" @click="setAudioRouteToSpeakerphone">{{audioRouteToSpeakerphone ? '关闭' : '开启'}}扬声器</text>
+			<text class="text" @click="operationScreenRecording">{{isScreenRecording ? '关闭' : '开启'}}录屏</text>
+			<text class="text" @click="getRemoteUserNetworkQuality">获取远程用户网络质量</text>
 		</view>
 		<view class="home__state">
 			<text class="title">房间状态：</text>
@@ -19,17 +19,15 @@
 		</view>
 		<view class="home__video" v-for="(item,index) in localTracks" :key="index">
 			<view class="text">进入</view>
-			<QNRTC-UniPlugin-SurfaceView class="video" v-if="item.kind === 'video'" :local="0"
-				:identifyID="item.identifyID" :trackID="item.trackID"></QNRTC-UniPlugin-SurfaceView>
+			<QNRTC-UniPlugin-SurfaceView class="video" v-if="item.kind === 'video'" :local="0" :identifyID="item.identifyID"
+				:trackID="item.trackID"></QNRTC-UniPlugin-SurfaceView>
 		</view>
 		<view class="home__video" v-for="(item,index) in remoteTracks" :key="item.trackID">
 			<view class="text">卡上打卡机的</view>
-			<QNRTC-UniPlugin-SurfaceView class="video" v-if="item.kind === 'video'" :local="1"
-				:identifyID="item.identifyID" :userID="item.userID" :trackID="item.trackID">
+			<QNRTC-UniPlugin-SurfaceView class="video" v-if="item.kind === 'video'" :local="1" :identifyID="item.identifyID"
+				:userID="item.userID" :trackID="item.trackID">
 			</QNRTC-UniPlugin-SurfaceView>
 		</view>
-
-
 	</view>
 </template>
 
@@ -383,27 +381,36 @@
 					// 设置远端音量
 					// this.remoteAudioTracks.setRemoteVolume(10)
 				}
+			},
+			// 获取远程用户网络质量
+			getRemoteUserNetworkQuality() {
+				// 获取房间内所有的远端用户
+				let remoteUsers = this.client.getRemoteUsers()
+				for (let i of remoteUsers) {
+					// 获取当前订阅的远端用户网络质量
+					const networkQuality = this.client.getUserNetworkQuality(i.userID)
+					// EXCELLENT网络优 FAIR网络一般 GOOD网络良 INVALID网络未知 POOR网络差
+					console.log(networkQuality.downlinkNetworkGrade, '下行网络质量', networkQuality.uplinkNetworkGrade, '上行网络质量')
+				}
 			}
 		}
 
 	}
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 	.home {
-		background-color: $uni-text-color-inverse;
+		background-color: #f5f5f5;
 
 		&__state {
-			display: flex;
-			flex-direction: row !important;
+			flex-direction: row;
 			justify-content: space-between;
 			flex-wrap: nowrap;
-			align-items: center !important;
+			align-items: center;
 			margin-bottom: 10px;
 		}
 
 		&__video {
-			display: flex;
 			flex-direction: column;
 			align-items: center;
 			justify-content: center;
@@ -414,18 +421,8 @@
 			}
 
 			.text {
-				color: $uni-color-primary;
+				color: #bdbdbd;
 				font-size: 28rpx;
-			}
-
-			.local {
-				width: 750rpx;
-				flex: 0.5
-			}
-
-			.local2 {
-				width: 750rpx;
-				flex: 1;
 			}
 		}
 
@@ -433,18 +430,23 @@
 			position: fixed;
 			bottom: 200rpx;
 			right: 0;
-			display: flex;
 			flex-direction: column;
 			align-items: center;
 			justify-content: center;
 
-			.btn {
+			.text {
 				width: 300rpx;
-				height: 86rpx;
+				height: 60rpx;
+				font-size: 24rpx;
+				text-align: center;
+				line-height: 60rpx;
 				margin-bottom: 30rpx;
-				/* #ifndef APP-NVUE */
-				border: none;
-				/* #endif */
+				border-radius: 10rpx;
+				background-color: #fff;
+
+				&:active {
+					background-color: darken(#fff, 5%);
+				}
 			}
 		}
 	}
