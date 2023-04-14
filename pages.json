@@ -12,9 +12,14 @@
 				"navigationBarTitleText": "授权",
 				"enablePullDownRefresh": false
 			}
-
+		},
+		{
+			"path": "pages/video/video",
+			"style": {
+				"navigationBarTitleText": "多人视频通话时的样式",
+				"enablePullDownRefresh": false
+			}
 		}
-
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",

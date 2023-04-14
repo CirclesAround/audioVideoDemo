@@ -5,7 +5,10 @@
 			<text class="title">{{title}}</text>
 		</view>
 		<view class="jump" @click="jumpHome">
-			<text class="btn">跳转到授权页面进行授权</text>
+			<text class="btn">跳转测试音视频页面</text>
+		</view>
+		<view class="jump" @click="jumpVideo">
+			<text class="btn">跳转测试多人视频样式页面</text>
 		</view>
 	</view>
 </template>
@@ -67,11 +70,19 @@
 
 			},
 			/**
-			 * 跳转到授权页面
+			 * 跳转测试音视频页面
 			 */
 			jumpHome() {
 				uni.navigateTo({
 					url: '/pages/home/home'
+				})
+			},
+			/**
+			 * 跳转到测试多人样式页面
+			 */
+			jumpVideo() {
+				uni.navigateTo({
+					url: '/pages/video/video'
 				})
 			}
 		}
@@ -80,7 +91,6 @@
 
 <style lang="scss" scoped>
 	.content {
-		min-height: 100vh;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;

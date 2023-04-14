@@ -32,11 +32,14 @@ const store = new Vuex.Store({
 		encoderQualityMode: 0,
 		isAEC3Enabled: 1,
 		multiStreamEnable: 0,
-		platform: "",
+		platform: "", // 手机机型 ios还是android
 		encodeWidth: 640,
 		encodeHeight: 480,
 		captureHeight: 480,
-		captureWidth: 640
+		captureWidth: 640,
+		statusBarHeight: 0, // 状态栏高度
+		screenWidth: 0, // 屏幕宽度，单位px
+		screenHeight: 0 // 屏幕高度，单位px
 	},
 	mutations: {
 		setEncodeWidth(state, payload) {
@@ -119,41 +122,46 @@ const store = new Vuex.Store({
 				// 	})
 
 				// } else {
-					uni.request({
-						url: 'http://community-test.xy22.cn/portal/get/token?auth=asdhks8ahd362is95a3h0disahdkusadhs&uid=162970',
-						success: res => {
-							if (res.data.code === 1) {
-								uni.setStorageSync('audioDemoMemberToken', JSON.stringify(res.data
-									.data.token))
-								let requestURL =
-									`http://community-test.xy22.cn/api/rtc/token?room_name=${state.roomID}`
-								uni.request({
-									url: requestURL,
-									header: {
-										'member-auth': res.data.data.token
-									},
-									method: 'GET',
-									success: res => {
-										if (res.data.code === 1) {
-											state.token = res.data.data.token
-											// uni.setStorageSync('audioDemoRoomToken',
-											// 	JSON.stringify(res.data.data.token))
-											console.log(state.token, '房间的token')
-										}
-									},
-									fail: err => {
-										console.log(err)
+				uni.request({
+					url: 'http://community-test.xy22.cn/portal/get/token?auth=asdhks8ahd362is95a3h0disahdkusadhs&uid=162970',
+					success: res => {
+						if (res.data.code === 1) {
+							uni.setStorageSync('audioDemoMemberToken', JSON.stringify(res.data
+								.data.token))
+							let requestURL =
+								`http://community-test.xy22.cn/api/rtc/token?room_name=${state.roomID}`
+							uni.request({
+								url: requestURL,
+								header: {
+									'member-auth': res.data.data.token
+								},
+								method: 'GET',
+								success: res => {
+									if (res.data.code === 1) {
+										state.token = res.data.data.token
+										// uni.setStorageSync('audioDemoRoomToken',
+										// 	JSON.stringify(res.data.data.token))
+										console.log(state.token, '房间的token')
 									}
-								})
-							}
+								},
+								fail: err => {
+									console.log(err)
+								}
+							})
 						}
-					})
+					}
+				})
 				// }
 
 			}
 		},
 		getPlatform(state) {
-			state.platform = uni.getSystemInfoSync().platform
+			let data = uni.getSystemInfoSync()
+			console.log(data, '系统')
+			state.platform = data.platform // 手机机型
+			state.statusBarHeight = data.statusBarHeight // 状态栏高度
+			state.screenWidth = data.screenWidth // 屏幕宽度，单位px
+			state.screenHeight = data.screenHeight - (data.statusBarHeight * data.pixelRatio) // 屏幕高度，单位px
 		}
 	},
 	actions: {
