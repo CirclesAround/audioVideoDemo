@@ -38,6 +38,7 @@ const store = new Vuex.Store({
 		captureHeight: 480,
 		captureWidth: 640,
 		statusBarHeight: 0, // 状态栏高度
+		pixelRatio: 0, // 分辨率
 		screenWidth: 0, // 屏幕宽度，单位px
 		screenHeight: 0 // 屏幕高度，单位px
 	},
@@ -161,6 +162,7 @@ const store = new Vuex.Store({
 			state.platform = data.platform // 手机机型
 			state.statusBarHeight = data.statusBarHeight // 状态栏高度
 			state.screenWidth = data.screenWidth // 屏幕宽度，单位px
+			state.pixelRatio = data.pixelRatio // 分辨率
 			state.screenHeight = data.screenHeight - (data.statusBarHeight * data.pixelRatio) // 屏幕高度，单位px
 		}
 	},

@@ -19,6 +19,14 @@
 				"navigationBarTitleText": "多人视频通话时的样式",
 				"enablePullDownRefresh": false
 			}
+		},
+		{
+			"path": "pages/verification/verification",
+			"style": {
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+
 		}
 	],
 	"globalStyle": {

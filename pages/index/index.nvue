@@ -10,6 +10,9 @@
 		<view class="jump" @click="jumpVideo">
 			<text class="btn">跳转测试多人视频样式页面</text>
 		</view>
+		<view class="jump" @click="jumpVerification">
+			<text class="btn">跳转测试滑动验证</text>
+		</view>
 	</view>
 </template>
 
@@ -83,6 +86,14 @@
 			jumpVideo() {
 				uni.navigateTo({
 					url: '/pages/video/video'
+				})
+			},
+			/**
+			 * 跳转到测试滑动验证
+			 */
+			jumpVerification() {
+				uni.navigateTo({
+					url: '/pages/verification/verification'
 				})
 			}
 		}

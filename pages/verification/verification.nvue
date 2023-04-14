@@ -1,0 +1,89 @@
+<template>
+	<view class="verify">
+		<view class="verify__move">
+			<movable-area class="move" ref="movableArea">
+				<movable-view class="drag" direction="horizontal" @change="changeMovable" ref="movableView" :disabled="isLast">
+					<text class="text">{{isLast ? '成功' : '拖动'}}</text>
+				</movable-view>
+			</movable-area>
+			<view class="test" :style="{width: `${testWidth}rpx`}"></view>
+		</view>
+		<view class="verify__text">
+			<text class="text">是否已经滑动到最后一点{{isLast}}</text>
+		</view>
+	</view>
+</template>
+
+<script>
+	import {
+		mapState
+	} from "vuex"
+	export default {
+		data() {
+			return {
+				testWidth: 0,
+				isLast: false
+			}
+		},
+		computed: {
+			...mapState(["screenWidth", "pixelRatio"])
+		},
+		methods: {
+			/**
+			 * 拖动位置
+			 */
+			changeMovable(event) {
+				this.isLast = event.detail.x >= this.$refs.movableArea.width - this.$refs.movableView.width
+				this.testWidth = (event.detail.x * this.pixelRatio) + this.$refs.movableView.width
+			}
+		}
+	}
+</script>
+
+<style lang="scss" scoped>
+	.verify {
+
+		&__move {
+			position: relative;
+			width: 710rpx;
+			height: 90rpx;
+			margin: 20rpx;
+
+			.move {
+				width: 710rpx;
+				height: 90rpx;
+				background-color: #ddd;
+			}
+
+			.drag {
+				width: 90rpx;
+				height: 90rpx;
+				align-items: center;
+				justify-content: center;
+				background-color: #00ff00;
+			}
+
+			.text {
+				font-size: 26rpx;
+			}
+
+			.test {
+				position: absolute;
+				top: 0;
+				left: 0;
+				bottom: 0;
+				background-color: #00ff00;
+			}
+		}
+
+		&__text {
+			align-items: center;
+			justify-content: center;
+
+			.text {
+				color: #090909;
+				font-size: 30rpx;
+			}
+		}
+	}
+</style>
