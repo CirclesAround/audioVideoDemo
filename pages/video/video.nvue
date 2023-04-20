@@ -54,7 +54,6 @@
 			<text class="text" @click="operationRethrust">开始转推</text>
 			<text class="text" @click="handleEnd">停止推流</text>
 			<text class="text" @click="setMutedLocalAudio">{{localAudioOn ? '关闭' : '开启'}}音频静音</text>
-			<text class="text" @click="setMutedLocalVideo">{{localVideoOn ? '关闭' : '开启'}}视频</text>
 		</view>
 	</view>
 </template>
@@ -75,8 +74,8 @@
 					dotActiveColor: 'rgba(0, 0, 0, .8)', // 当前选中的指示点颜色
 				},
 				client: null, // 创建
-				localTracks: [],
-				remoteTracks: [],
+				localTracks: [], // 本地
+				remoteTracks: [], // 远程用户
 				transcodingTracks: [], // 合流数组
 				lastTracks: null, // 最后一个进入或者是指定展示的视频
 				connectionState: "", // 连接状态
@@ -86,8 +85,7 @@
 				remoteAudioTracks: null, // 远程音频
 				currentIndex: 0, // 当前在第几个滑块
 				isOpenCamera: true, // 是否开启摄像头
-				localAudioOn: false, // 音频是否静音
-				localVideoOn: false // 视频是否静音
+				localAudioOn: false // 音频是否静音
 			}
 		},
 		computed: {
@@ -304,6 +302,25 @@
 				this.client.on("onUserPublished", params => {
 					console.log("用户发布", params)
 					// todo 不知道是否可以获取到最后一个
+					// if (this.client.getPublishedTracks().length > 0) { // 最后一个
+					// 	console.log('最后一个的值', this.client.getPublishedTracks())
+					// }
+
+					// 多个人的时候需要实时修改x轴和y轴
+					// params.trackList.forEach(item => {
+					// 	this.transcodingTracks.push({
+					// 		x: this.transcodingTracks.length * 130,
+					// 		y: this.transcodingTracks.length * 130,
+					// 		width: 100,
+					// 		height: 100,
+					// 		trackID: item.trackID, // 当前要操作的 Track 的 id
+					// 		renderMode: "ASPECT_FILL", // 图像的填充模式
+					// 		SEIEnabled: 0, // 是否在合流中添加视频 Track 的 SEI 内容，针对所有合流视频 Track，默认只能设置一路 SEI
+					// 		zOrder: 0 // 该 Track 在合流画面中的层次，0 为最底层。该属性仅对视频 Track 有效。
+					// 	})
+					// })
+
+					// 一对一的设置
 					params.trackList.forEach(item => {
 						this.transcodingTracks.push({
 							x: 0,
@@ -316,8 +333,6 @@
 							zOrder: 0 // 该 Track 在合流画面中的层次，0 为最底层。该属性仅对视频 Track 有效。
 						})
 					})
-
-					console.log(this.client.getPublishedTracks(), '5656看见好多卡上')
 				})
 				// 远端 Track 取消发布
 				this.client.on("onUserUnpublished", params => {
@@ -332,8 +347,18 @@
 							this.remoteAudioTracks = null
 						}
 						if (this.remoteVideoTracks && i.trackID === this.remoteVideoTracks.trackID) {
-							console.log(this.remoteVideoTracks)
 							this.remoteVideoTracks = null
+						}
+
+						if (this.transcodingTracks.length > 0) {
+							// todo 取消发布删除用户合流
+							this.transcodingTracks.forEach((item, index) => {
+								if (item.trackID === i.trackID) {
+									this.transcodingTracks.splice(index, 1)
+								}
+							})
+							// todo 需要修改合流布局的配置
+							this.client.setTranscodingLiveStreamingTracks('yyds01', this.transcodingTracks)
 						}
 					}
 				})
@@ -469,15 +494,6 @@
 				this.localAudioOn = !this.localAudioOn
 				this.microphoneAudioTrack && this.microphoneAudioTrack.setMuted(this.localAudioOn)
 				// this.microphoneAudioTrack.setVolume(10)
-			},
-			// 开启和关闭视频
-			setMutedLocalVideo() {
-				this.localVideoOn = !this.localVideoOn
-				if (this.cameraVideoTrack) {
-					this.cameraVideoTrack.setMuted(this.localVideoOn)
-					// 设置远端音量
-					// this.remoteAudioTracks.setRemoteVolume(10)
-				}
 			}
 		}
 	}
