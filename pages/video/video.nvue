@@ -4,20 +4,19 @@
 		<swiper class="video__content" :indicator-dots="shuffingData.isShowDot" :indicator-color="shuffingData.dotColor"
 			:indicator-active-color="shuffingData.dotActiveColor" :current="currentIndex" @change="swiperChange">
 			<swiper-item>
-				<view class="video__item" v-if="currentIndex === 0">
+				<!-- <view class="video__item" v-if="currentIndex === 0">
 					<view class="other" :key="lastTracks.trackID" v-if="lastTracks && lastTracks.kind === 'video'">
 						<QNRTC-UniPlugin-SurfaceView class="other-video" :local="1" :identifyID="lastTracks.identifyID"
 							:userID="lastTracks.userID" :trackID="lastTracks.trackID">
 						</QNRTC-UniPlugin-SurfaceView>
 					</view>
-					<!-- 安卓10以上需要写在下面 -->
 					<template v-for="(item, index) in localTracks">
-						<view class="mine" :class="{change: lastTracks}" v-if="item.kind === 'video'" :key="item.trackID">
+						<view class="mine" v-if="item.kind === 'video'" :key="item.trackID">
 							<QNRTC-UniPlugin-SurfaceView class="mine-video" :local="0" :identifyID="item.identifyID"
 								:trackID="item.trackID"></QNRTC-UniPlugin-SurfaceView>
 						</view>
 					</template>
-				</view>
+				</view> -->
 			</swiper-item>
 			<swiper-item v-if="remoteTracks.length > 2">
 				<view class="video__item more" v-if="currentIndex === 1">
@@ -52,6 +51,10 @@
 		</swiper>
 		<view class="video__btn">
 			<text class="text" @click="operationCamera">点击{{isOpenCamera ? '关闭' : '打开'}}摄像头</text>
+			<text class="text" @click="operationRethrust">开始转推</text>
+			<text class="text" @click="handleEnd">停止推流</text>
+			<text class="text" @click="setMutedLocalAudio">{{localAudioOn ? '关闭' : '开启'}}音频静音</text>
+			<text class="text" @click="setMutedLocalVideo">{{localVideoOn ? '关闭' : '开启'}}视频</text>
 		</view>
 	</view>
 </template>
@@ -74,12 +77,17 @@
 				client: null, // 创建
 				localTracks: [],
 				remoteTracks: [],
+				transcodingTracks: [], // 合流数组
 				lastTracks: null, // 最后一个进入或者是指定展示的视频
 				connectionState: "", // 连接状态
 				cameraVideoTrack: null, // 创建摄像头
 				microphoneAudioTrack: null, // 创建音频
+				remoteVideoTracks: null, // 远程视频
+				remoteAudioTracks: null, // 远程音频
 				currentIndex: 0, // 当前在第几个滑块
-				isOpenCamera: true // 是否开启摄像头
+				isOpenCamera: true, // 是否开启摄像头
+				localAudioOn: false, // 音频是否静音
+				localVideoOn: false // 视频是否静音
 			}
 		},
 		computed: {
@@ -87,7 +95,7 @@
 				"platform", "multiStreamEnable",
 				"token", "policy", "logLevel", "stereo", "bwePolicy", "allowAudioMixWithOthers", "hWCodecEnabled",
 				"maintainResolution", "fieldTrials", "encoderQualityMode", "isAEC3Enabled", "multiStreamEnable",
-				"roomID"
+				"roomID", "pixelRatio"
 			]),
 			remoteTracks() {
 				return this.lastTracks = this.remoteTracks && this.remoteTracks[this.remoteTracks.length - 1]
@@ -98,8 +106,39 @@
 				return this.lastTracks = this.remoteTracks && this.remoteTracks[this.remoteTracks.length - 1]
 			}
 		},
+		onBackPress() {
+			this.client.leave()
+			QNRTC.deinit()
+		},
+		onUnload() {
+			this.client.leave()
+			QNRTC.deinit()
+			this.timer = null
+		},
 		onLoad() {
 			this.handleJoinRoom()
+			// setInterval(() => {
+			// 	if (this.remoteAudioTracks) {
+			// 		// 是否订阅
+			// 		// const remoteAudioTracksSubscribed = this.remoteAudioTracks.isSubscribed()
+			// 		// console.log("remoteAudioTracksSubscribed", remoteAudioTracksSubscribed)
+			// 		// 获取音量
+			// 		// const getRemoteVolume = this.remoteAudioTracks.getRemoteVolume()
+			// 		// console.log("getRemoteVolume", getRemoteVolume, '啥考家等哈三点')
+			// 	}
+			// 	if (this.remoteVideoTracks) {
+			// 		// 是否订阅
+			// 		// const remoteVideoTracksSubscribed = this.remoteVideoTracks.isSubscribed()
+			// 		// console.log("remoteVideoTracksSubscribed", remoteVideoTracksSubscribed)
+			// 		// 获取当前 track 是否开启了大小流发布
+			// 		// const isMultiProfileEnabled = this.remoteVideoTracks.isMultiProfileEnabled()
+			// 		// console.log("isMultiProfileEnabled", isMultiProfileEnabled)
+			// 		// 获取当前视频轨道的分辨率等级
+			// 		// const getProfile = this.remoteVideoTracks.getProfile()
+			// 		// console.log("getProfiles", getProfile)
+			// 	}
+			// }, 2000)
+
 		},
 		methods: {
 			async handleJoinRoom() {
@@ -152,6 +191,19 @@
 								uni.showModal({
 									content: "发布成功"
 								})
+								this.localTracks.forEach(item => {
+									this.transcodingTracks.push({
+										x: (this.screenWidth * this.pixelRatio) - 200,
+										y: 0,
+										width: 200,
+										height: 200,
+										trackID: item.trackID, // 当前要操作的 Track 的 id
+										renderMode: "ASPECT_FILL", // 图像的填充模式
+										SEIEnabled: 0, // 是否在合流中添加视频 Track 的 SEI 内容，针对所有合流视频 Track，默认只能设置一路 SEI
+										zOrder: 1 // 该 Track 在合流画面中的层次，0 为最底层。该属性仅对视频 Track 有效。
+									})
+								})
+
 							} else {
 								uni.showModal({
 									content: error.message
@@ -159,7 +211,6 @@
 							}
 						})
 					} else if (state === "DISCONNECTED") { // 未连接
-						console.log(info)
 						if (info.reason === "KICKED_OUT") {
 							uni.showModal({
 								content: "被踢出房间",
@@ -223,7 +274,6 @@
 					console.log("用户视频订阅成功")
 					for (let i of params.trackList) {
 						this.remoteTracks.push(i)
-						console.log(this.remoteTracks, '获取')
 
 						this.remoteVideoTracks = i
 						// 视频质量改变回调
@@ -253,7 +303,21 @@
 				// 远端 Track 发布
 				this.client.on("onUserPublished", params => {
 					console.log("用户发布", params)
-					this.client.subscribe(params.trackList)
+					// todo 不知道是否可以获取到最后一个
+					params.trackList.forEach(item => {
+						this.transcodingTracks.push({
+							x: 0,
+							y: 0,
+							width: this.screenWidth * this.pixelRatio,
+							height: this.screenHeight * this.pixelRatio,
+							trackID: item.trackID, // 当前要操作的 Track 的 id
+							renderMode: "ASPECT_FILL", // 图像的填充模式
+							SEIEnabled: 0, // 是否在合流中添加视频 Track 的 SEI 内容，针对所有合流视频 Track，默认只能设置一路 SEI
+							zOrder: 0 // 该 Track 在合流画面中的层次，0 为最底层。该属性仅对视频 Track 有效。
+						})
+					})
+
+					console.log(this.client.getPublishedTracks(), '5656看见好多卡上')
 				})
 				// 远端 Track 取消发布
 				this.client.on("onUserUnpublished", params => {
@@ -263,8 +327,6 @@
 						if (index >= 0) {
 							this.remoteTracks.splice(index, 1)
 						}
-
-
 
 						if (this.remoteAudioTracks && i.trackID === this.remoteAudioTracks.trackID) {
 							this.remoteAudioTracks = null
@@ -294,7 +356,36 @@
 				this.client.on("onUserLeft", params => {
 					console.log("用户离开房间", params)
 				})
-				console.log(this.token, '按实际看到哈时间的房间token')
+
+				// 合流布局更改回调
+				this.client.on("onUpdatedLiveStreaming", params => {
+					console.log(params, '布局发生了改变')
+					uni.showModal({
+						content: `转推任务${params.streamID}布局已更改`
+					})
+				})
+				// 转推任务成功创建时触发此回调
+				this.client.on("onStartLiveStreaming", params => {
+					console.log(params, '推流成功', this.transcodingTracks)
+					uni.showModal({
+						content: `转推任务${params.streamID}创建成功`
+					})
+					// 进行合流布局的配置
+					this.client.setTranscodingLiveStreamingTracks('yyds01', this.transcodingTracks)
+				})
+				// 转推任务成功停止时触发此回调
+				this.client.on("onStoppedLiveStreaming", params => {
+					uni.showModal({
+						content: `转推任务${params.streamID}已停止`
+					})
+				})
+				// 转推任务出错时触发此回调
+				this.client.on("onErrorLiveStreaming", params => {
+					uni.showModal({
+						content: `转推任务${params.streamID}${params.info.message}`
+					})
+					console.log(params, '转推任务失败')
+				})
 				this.client.join(this.token)
 			},
 			// 轮播发生改变
@@ -320,6 +411,73 @@
 			selectShow(item) {
 				this.lastTracks = item
 				this.currentIndex = 0
+			},
+			/**
+			 * 开始转推
+			 */
+			operationRethrust() {
+				// 开始转推
+				this.client.startLiveStreamingWithTranscoding({
+					streamID: "yyds01", // 自定义合流ID, 该id为合流任务的唯一标识符
+					url: "rtmp://pili-publish.hskvideotest.smsqmx.com/lianmai-01/yyds01", // 设置合流任务的推流地址
+					width: this.screenWidth * this.pixelRatio, // 设置合流画布的宽度
+					height: this.screenHeight * this.pixelRatio, // 设置合流画布的高度
+					videoFrameRate: 24, // 设置合流任务的视频帧率
+					bitrate: 1024, // 设置合流任务的码率，单位: kbps
+					minBitrate: 200, // 最小码率
+					maxBitrate: 2024, // 最大码率
+					renderMode: 'ASPECT_FILL', // 设置合流任务的默认画面填充方式
+					holdLastFrame: true, // 是否在 Track 没有数据的情况下在合流画布中保持最后一帧
+					background: {
+						width: this.screenWidth * this.pixelRatio,
+						height: this.screenHeight * this.pixelRatio,
+						x: 0,
+						y: 0,
+						url: "https://pili-playback.qnsdk.com/ivs_background_1280x720.png"
+					}, // 背景
+					watermarks: [{
+						w: 100,
+						h: 100,
+						x: 1,
+						y: this.screenHeight,
+						url: "https://pili-playback.qnsdk.com/ivs_background_1280x720.png"
+					}] // 水印
+				})
+			},
+			// 停止合流 -- native接口
+			handleEnd() {
+				// todo 取消合流有问题
+				// 取消某路合流布局
+				// this.transcodingTracks.splice(this.transcodingTracks.length - 1, 1)
+				// this.client.removeTranscodingLiveStreamingTracks('yyds01', this.transcodingTracks)
+				// 取消推流
+				this.client.stopLiveStreamingWithTranscoding({
+					streamID: "yyds01", // 自定义合流ID, 该id为合流任务的唯一标识符
+					url: "rtmp://pili-publish.hskvideotest.smsqmx.com/lianmai-01/yyds01", // 设置合流任务的推流地址
+					width: this.screenWidth * this.pixelRatio, // 设置合流画布的宽度
+					height: this.screenHeight * this.pixelRatio, // 设置合流画布的高度
+					videoFrameRate: 24, // 设置合流任务的视频帧率
+					bitrate: 1024, // 设置合流任务的码率，单位: kbps
+					minBitrate: 200, // 最小码率
+					maxBitrate: 2024, // 最大码率
+					renderMode: 'ASPECT_FILL', // 设置合流任务的默认画面填充方式
+					holdLastFrame: true, // 是否在 Track 没有数据的情况下在合流画布中保持最后一帧
+				})
+			},
+			// 本地音频静音
+			setMutedLocalAudio() {
+				this.localAudioOn = !this.localAudioOn
+				this.microphoneAudioTrack && this.microphoneAudioTrack.setMuted(this.localAudioOn)
+				// this.microphoneAudioTrack.setVolume(10)
+			},
+			// 开启和关闭视频
+			setMutedLocalVideo() {
+				this.localVideoOn = !this.localVideoOn
+				if (this.cameraVideoTrack) {
+					this.cameraVideoTrack.setMuted(this.localVideoOn)
+					// 设置远端音量
+					// this.remoteAudioTracks.setRemoteVolume(10)
+				}
 			}
 		}
 	}
@@ -363,6 +521,14 @@
 
 				&-video {
 					flex: 1;
+				}
+
+				&.change {
+					position: absolute;
+					top: 0;
+					right: 0;
+					width: 300rpx;
+					height: 400rpx;
 				}
 			}
 

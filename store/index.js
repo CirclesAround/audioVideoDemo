@@ -20,7 +20,7 @@ const store = new Vuex.Store({
 		token: "",
 		appID: "h0gyxvd10",
 		userName: "2222",
-		roomID: "audioVideoDemo",
+		roomID: "lianmai-01",
 		policy: "forceUDP",
 		logLevel: "info",
 		stereo: 0,
