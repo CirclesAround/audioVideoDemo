@@ -1,6 +1,7 @@
 <!-- 多人会议 -->
 <template>
 	<view class="video" :style="{width: screenWidth + 'px', height: screenHeight + 'px'}">
+
 		<swiper class="video__content" :indicator-dots="shuffingData.isShowDot" :indicator-color="shuffingData.dotColor"
 			:indicator-active-color="shuffingData.dotActiveColor" :current="currentIndex" @change="swiperChange">
 			<swiper-item>
@@ -17,6 +18,8 @@
 						</view>
 					</template>
 				</view> -->
+				<!-- http://medias-sq.xy22.cn/upload/single/video/2023/03/13/20230313640ef6ba4972f.m3u8 -->
+				<video v-if="remoteVideoUrl" class="test" :src="remoteVideoUrl" play-strategy="2" is-live="true"></video>
 			</swiper-item>
 			<swiper-item v-if="remoteTracks.length > 2">
 				<view class="video__item more" v-if="currentIndex === 1">
@@ -73,6 +76,7 @@
 					dotColor: 'rgba(0, 0, 0, .3)', // 指示点颜色
 					dotActiveColor: 'rgba(0, 0, 0, .8)', // 当前选中的指示点颜色
 				},
+				timer: null,
 				client: null, // 创建
 				localTracks: [], // 本地
 				remoteTracks: [], // 远程用户
@@ -85,7 +89,8 @@
 				remoteAudioTracks: null, // 远程音频
 				currentIndex: 0, // 当前在第几个滑块
 				isOpenCamera: true, // 是否开启摄像头
-				localAudioOn: false // 音频是否静音
+				localAudioOn: false, // 音频是否静音
+				remoteVideoUrl: '' // 合流后的远程视频地址m3u8格式
 			}
 		},
 		computed: {
@@ -136,6 +141,15 @@
 			// 		// console.log("getProfiles", getProfile)
 			// 	}
 			// }, 2000)
+			this.timer = setInterval(() => {
+				if (this.remoteVideoUrl) {
+					clearInterval(this.timer)
+				}
+				if (this.remoteTracks) {
+					this.remoteVideoUrl = "http://pili-live-hls.hskvideotest.smsqmx.com/lianmai-01/yyds01.m3u8"
+				}
+				console.log('实时获取远程的地址')
+			}, 10000)
 
 		},
 		methods: {
@@ -403,6 +417,7 @@
 					uni.showModal({
 						content: `转推任务${params.streamID}已停止`
 					})
+					this.remoteVideoUrl = ''
 				})
 				// 转推任务出错时触发此回调
 				this.client.on("onErrorLiveStreaming", params => {
@@ -505,6 +520,11 @@
 		&__content {
 			flex: 1;
 			background-color: rgba(85, 170, 255, .6);
+
+			.test {
+				flex: 1;
+				border: 1px solid red;
+			}
 		}
 
 		&__item {

@@ -7,6 +7,7 @@
 	"transformPx": false,
 	/* 5+App特有相关 */
 	"app-plus": {
+		// "runmode" : "liberate", // app 播放视频路径为本地路径
 		"usingComponents": true,
 		"nvueStyleCompiler": "uni-app",
 		"compilerVersion": 3,
@@ -23,7 +24,9 @@
 			}
 		},
 		/* 模块配置 */
-		"modules": {},
+		"modules": {
+			"VideoPlayer": {}
+		},
 		/* 应用发布信息 */
 		"distribute": {
 			/* android打包配置 */
